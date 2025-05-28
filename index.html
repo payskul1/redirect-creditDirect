@@ -1,57 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Continue with Credit Direct</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f7e0ff; /* light blue background */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .container {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
-
-    h1 {
-      color: #6b136b;
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .button {
-      background-color: #6b136b;
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 9999px;
-      font-size: 1rem;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background-color 0.3s ease;
-    }
-
-    .button:hover {
-      background-color: #b439b4; /* blue-800 */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Direct Checkout</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f6f6;
+        }
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #4B00B7;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #3a0092;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4B00B7;
+        }
+        .label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .success-message, .error-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Continue with Credit Direct</h1>
-    <a href="https://payskul.com" target="_blank" class="button">Go to Payskul</a>
-  </div>
+    <div class="container">
+        <div class="header">
+            <h1>Credit Direct Checkout</h1>
+            <p>Secure Buy Now, Pay Later Solution</p>
+        </div>
+        
+        <div class="info-box">
+            <div class="input-group">
+                <div class="label">Total Amount (₦):</div>
+                <input type="number" id="amount" value="50000" min="1000" placeholder="Enter amount">
+            </div>
+            
+            <div class="input-group">
+                <div class="label">Customer Email:</div>
+                <input type="email" id="customerEmail" value="test@example.com" placeholder="Enter customer email">
+            </div>
+            
+            <div class="input-group">
+                <div class="label">Customer Phone:</div>
+                <input type="tel" id="customerPhone" value="+2348012345678" placeholder="Enter customer phone">
+            </div>
+            
+            <div class="amount" id="displayAmount">₦50,000</div>
+        </div>
+        
+        <button id="launch-btn" class="btn" onclick="openCheckout()">
+            Proceed to Checkout
+        </button>
+        
+        <div class="loading" id="loading">
+            <p>Initializing checkout...</p>
+        </div>
+        
+        <div class="success-message" id="successMessage">
+            <strong>Success!</strong> Payment completed successfully.
+        </div>
+        
+        <div class="error-message" id="errorMessage">
+            <strong>Error!</strong> <span id="errorText">Something went wrong.</span>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+        integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer">
+    </script>
+
+    <script type="application/javascript">
+        let connect;
+        
+        // Sample products array - you can modify this as needed
+        const sampleProducts = [
+            {
+                "name": "Sample Product 1",
+                "price": 25000,
+                "quantity": 1,
+                "description": "Sample product description"
+            },
+            {
+                "name": "Sample Product 2", 
+                "price": 25000,
+                "quantity": 1,
+                "description": "Another sample product"
+            }
+        ];
+
+        function generateUniqueSessionId(length) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+
+        function signTransaction(transaction) {
+            const privateKey = '4612fc72101514678745ac11720bd833fdd5e575cc79f3d57e2c48b92afe4b87';
+            const sm = transaction.sessionId + transaction.customerEmail + transaction.totalAmount;
+            const st = signTransactionRequest(sm, privateKey);
+            return st;
+        }
+
+        function signTransactionRequest(message, privateKey) {
+            const key = CryptoJS.enc.Utf8.parse(privateKey);
+            const messageData = CryptoJS.enc.Utf8.parse(message);
+            const signature = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA256(messageData, key));
+            return signature;
+        }
+
+        function updateAmount() {
+            const amountInput = document.getElementById('amount');
+            const displayAmount = document.getElementById('displayAmount');
+            const amount = parseInt(amountInput.value) || 0;
+            displayAmount.textContent = '₦' + amount.toLocaleString();
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const button = document.getElementById('launch-btn');
+            loading.style.display = show ? 'block' : 'none';
+            button.disabled = show;
+        }
+
+        function showMessage(type, message) {
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            // Hide both messages first
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+            
+            if (type === 'success') {
+                successMsg.style.display = 'block';
+            } else if (type === 'error') {
+                errorText.textContent = message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        function openCheckout() {
+            // Get form values
+            const amount = parseInt(document.getElementById('amount').value);
+            const customerEmail = document.getElementById('customerEmail').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            
+            // Basic validation
+            if (!amount || amount < 1000) {
+                showMessage('error', 'Please enter a valid amount (minimum ₦1,000)');
+                return;
+            }
+            
+            if (!customerEmail || !customerEmail.includes('@')) {
+                showMessage('error', 'Please enter a valid email address');
+                return;
+            }
+            
+            if (!customerPhone) {
+                showMessage('error', 'Please enter a valid phone number');
+                return;
+            }
+            
+            showLoading(true);
+            showMessage('', ''); // Clear any previous messages
+            
+            const sessionId = generateUniqueSessionId(15);
+            
+            const transaction = {
+                "totalAmount": amount,
+                "customerEmail": customerEmail,
+                "customerPhone": customerPhone,
+                "sessionId": sessionId,
+                "metaData": "",
+                "products": sampleProducts
+            };
+            
+            const config = {
+                publicKey: "028d174dc1d1485a82fc75a2588f03f9",
+                signature: signTransaction(transaction),
+                transaction: transaction,
+                isLive: false, // Set to true for production
+                onSuccess: function (response) {
+                    console.log('Payment Success:', JSON.stringify(response));
+                    showLoading(false);
+                    showMessage('success', 'Payment completed successfully!');
+                },
+                onClose: function () {
+                    console.log('User closed checkout widget.');
+                    showLoading(false);
+                },
+                onError: function (error) {
+                    console.log('Error occurred:', error);
+                    showLoading(false);
+                    showMessage('error', 'Payment failed: ' + (error.message || 'Unknown error'));
+                },
+                onPopup: function () {
+                    console.log('Popup opened for user interaction.');
+                }
+            };
+            
+            try {
+              connect = new Connect(config);
+              connect.setup();
+              connect.open();
+                showLoading(false);
+            } catch (error) {
+                console.error('Failed to initialize checkout:', error);
+                showLoading(false);
+                showMessage('error', 'Failed to initialize checkout: ' + error.message);
+            }
+        }
+
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('amount');
+            amountInput.addEventListener('input', updateAmount);
+            
+            // Initialize display
+            updateAmount();
+        });
+    </script>
+    <script type="application/javascript" src="https://checkout.creditdirect.ng/bnpl/checkout.min.js"></script>
+
 </body>
 </html>
